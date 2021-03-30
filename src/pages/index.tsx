@@ -1,17 +1,13 @@
+import { useState } from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
 import { GetStaticProps } from 'next';
-import Header from '../components/Header';
-import { FiCalendar } from 'react-icons/fi';
-import { FiUser } from 'react-icons/fi';
 import Prismic from '@prismicio/client';
 import { format } from 'date-fns';
-import ptBR from 'date-fns/locale/pt-BR/index.js';
-
+import ptBR from 'date-fns/locale/pt-BR';
+import { FiCalendar, FiUser } from 'react-icons/fi';
 import { getPrismicClient } from '../services/prismic';
-
-import commonStyles from '../styles/common.module.scss';
 import styles from './home.module.scss';
-import { RichText } from 'prismic-dom';
-import { useEffect, useState } from 'react';
 
 interface Post {
   uid?: string;
@@ -33,12 +29,14 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps): JSX.Element {
-  const [posts, setPosts] = useState<Post []>(postsPagination.results)
-  const [nextPage, setNextPage] = useState<string | null>(postsPagination.next_page)
-  
-  const handleRenderNextPage = async (): Promise<void> => {
-    const response = await fetch(postsPagination.next_page)
-    const data = await response.json()
+  const [posts, setPosts] = useState<Post[]>(postsPagination.results);
+  const [nextPage, setNextPage] = useState<string | null>(
+    postsPagination.next_page
+  );
+
+  async function handleRenderNextPage (): Promise<void> {
+    const response = await fetch(nextPage);
+    const data = await response.json();
     const newPosts = data.results.map(post => {
       return {
         uid: post.uid,
@@ -58,37 +56,49 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
     });
     setPosts([...posts, ...newPosts]);
     setNextPage(data.next_page);
-  }
-
+  };
   return (
-    <main className={styles.container}>
-      {posts?.map(post => (
-        <div key={post.uid} className={styles.posts}>
-          <h1>{post.data.title}</h1>
-          <p>{post.data.subtitle}</p>
-          <span>
-            <time>
-              <FiCalendar style={{ marginRight: '5px' }} />
-              {post.first_publication_date}
-            </time>
-            <p>
-              <FiUser style={{ marginRight: '5px' }} />
-              {post.data.author}
-            </p>
-          </span>
-        </div>
-      ))}
-
-        {nextPage && (
+    <>
+      <Head>
+        <title>Home | spacetraveling</title>
+      </Head>
+      <main className={styles.container}>
+        <div className={styles.content}>
+          <Link href="/">
+            <a>
+              <img src="/images/logo.svg" alt="logo"/>
+            </a>
+          </Link>
+          {posts.map(post => (
+            <Link key={post.uid} href={`/post/${post.uid}`}>
+              <a>
+                <strong>{post.data.title}</strong>
+                <p>{post.data.subtitle}</p>
+                <div>
+                  <div>
+                    <FiCalendar />
+                    <time>{post.first_publication_date}</time>
+                  </div>
+                  <div>
+                    <FiUser />
+                    <span>{post.data.author}</span>
+                  </div>
+                </div>
+              </a>
+            </Link>
+          ))}
+          {nextPage && (
             <a
               className={styles.loadMore}
               href="/#"
-              onClick={handleRenderNextPage}
+              onClick={() => handleRenderNextPage()}
             >
               Carregar mais posts
             </a>
           )}
-    </main>
+        </div>
+      </main>
+    </>
   );
 }
 
